@@ -178,7 +178,7 @@ VirtioRngGetRNG (
     goto FreeBuffer;
   }
 
-  CurrentTpl = gBS->RaiseTPL (TPL_HIGH_LEVEL);
+  CurrentTpl = gBS->RaiseTPL (TPL_NOTIFY);
 
   //
   // The Virtio RNG device may return less data than we asked it to, and can
@@ -201,6 +201,7 @@ VirtioRngGetRNG (
         EFI_SUCCESS)
     {
       Status = EFI_DEVICE_ERROR;
+      gBS->RestoreTPL (CurrentTpl);
       goto UnmapBuffer;
     }
 
