@@ -17,12 +17,16 @@ VirtioFsSimpleFileGetPosition (
   )
 {
   VIRTIO_FS_FILE  *VirtioFsFile;
+  EFI_TPL         CurrentTpl;
 
   VirtioFsFile = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (This);
+  CurrentTpl   = VirtioFsAcquireLock ();
   if (VirtioFsFile->IsDirectory) {
+    VirtioFsReleaseLock (CurrentTpl);
     return EFI_UNSUPPORTED;
   }
 
   *Position = VirtioFsFile->FilePosition;
+  VirtioFsReleaseLock (CurrentTpl);
   return EFI_SUCCESS;
 }

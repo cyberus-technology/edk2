@@ -22,14 +22,17 @@ VirtioFsSimpleFileSetPosition (
   VIRTIO_FS                           *VirtioFs;
   EFI_STATUS                          Status;
   VIRTIO_FS_FUSE_ATTRIBUTES_RESPONSE  FuseAttr;
+  EFI_TPL                             CurrentTpl;
 
   VirtioFsFile = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (This);
+  CurrentTpl   = VirtioFsAcquireLock ();
 
   //
   // Directories can only be rewound, per spec.
   //
   if (VirtioFsFile->IsDirectory) {
     if (Position != 0) {
+      VirtioFsReleaseLock (CurrentTpl);
       return EFI_UNSUPPORTED;
     }
 
@@ -42,6 +45,7 @@ VirtioFsSimpleFileSetPosition (
     VirtioFsFile->SingleFileInfoSize = 0;
     VirtioFsFile->NumFileInfo        = 0;
     VirtioFsFile->NextFileInfo       = 0;
+    VirtioFsReleaseLock (CurrentTpl);
     return EFI_SUCCESS;
   }
 
@@ -53,6 +57,7 @@ VirtioFsSimpleFileSetPosition (
     // Caller is requesting absolute file position.
     //
     VirtioFsFile->FilePosition = Position;
+    VirtioFsReleaseLock (CurrentTpl);
     return EFI_SUCCESS;
   }
 
@@ -62,9 +67,11 @@ VirtioFsSimpleFileSetPosition (
   VirtioFs = VirtioFsFile->OwnerFs;
   Status   = VirtioFsFuseGetAttr (VirtioFs, VirtioFsFile->NodeId, &FuseAttr);
   if (EFI_ERROR (Status)) {
+    VirtioFsReleaseLock (CurrentTpl);
     return Status;
   }
 
   VirtioFsFile->FilePosition = FuseAttr.Size;
+  VirtioFsReleaseLock (CurrentTpl);
   return EFI_SUCCESS;
 }

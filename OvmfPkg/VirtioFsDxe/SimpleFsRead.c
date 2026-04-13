@@ -436,8 +436,10 @@ VirtioFsSimpleFileRead (
 {
   VIRTIO_FS_FILE  *VirtioFsFile;
   EFI_STATUS      Status;
+  EFI_TPL         CurrentTpl;
 
   VirtioFsFile = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (This);
+  CurrentTpl   = VirtioFsAcquireLock ();
 
   if (VirtioFsFile->IsDirectory) {
     Status = ReadFileInfoCache (VirtioFsFile, BufferSize, Buffer);
@@ -445,5 +447,6 @@ VirtioFsSimpleFileRead (
     Status = ReadRegularFile (VirtioFsFile, BufferSize, Buffer);
   }
 
+  VirtioFsReleaseLock (CurrentTpl);
   return Status;
 }

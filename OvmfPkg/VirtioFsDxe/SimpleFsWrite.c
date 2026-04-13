@@ -21,15 +21,19 @@ VirtioFsSimpleFileWrite (
   EFI_STATUS      Status;
   UINTN           Transferred;
   UINTN           Left;
+  EFI_TPL         CurrentTpl;
 
   VirtioFsFile = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (This);
   VirtioFs     = VirtioFsFile->OwnerFs;
+  CurrentTpl   = VirtioFsAcquireLock ();
 
   if (VirtioFsFile->IsDirectory) {
+    VirtioFsReleaseLock (CurrentTpl);
     return EFI_UNSUPPORTED;
   }
 
   if (!VirtioFsFile->IsOpenForWriting) {
+    VirtioFsReleaseLock (CurrentTpl);
     return EFI_ACCESS_DENIED;
   }
 
@@ -80,5 +84,6 @@ VirtioFsSimpleFileWrite (
   // error. In other words, (Transferred > 0) is inconsequential for the return
   // value.
   //
+  VirtioFsReleaseLock (CurrentTpl);
   return Status;
 }
