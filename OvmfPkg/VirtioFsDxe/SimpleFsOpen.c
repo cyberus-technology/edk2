@@ -329,9 +329,11 @@ VirtioFsSimpleFileOpen (
   UINT64          NewNodeId;
   UINT64          NewFuseHandle;
   BOOLEAN         NewNodeIsDirectory;
+  EFI_TPL         CurrentTpl;
 
   VirtioFsFile = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (This);
   VirtioFs     = VirtioFsFile->OwnerFs;
+  CurrentTpl   = VirtioFsAcquireLock ();
 
   //
   // Validate OpenMode.
@@ -350,6 +352,7 @@ VirtioFsSimpleFileOpen (
       PermitCreation = TRUE;
       break;
     default:
+      VirtioFsReleaseLock (CurrentTpl);
       return EFI_INVALID_PARAMETER;
   }
 
@@ -368,6 +371,7 @@ VirtioFsSimpleFileOpen (
       //
       // Unknown attribute requested.
       //
+      VirtioFsReleaseLock (CurrentTpl);
       return EFI_INVALID_PARAMETER;
     }
 
@@ -418,6 +422,7 @@ VirtioFsSimpleFileOpen (
       FileName
       ));
     if (!BugCompat) {
+      VirtioFsReleaseLock (CurrentTpl);
       return EFI_INVALID_PARAMETER;
     }
   }
@@ -427,6 +432,7 @@ VirtioFsSimpleFileOpen (
   //
   NewVirtioFsFile = AllocatePool (sizeof *NewVirtioFsFile);
   if (NewVirtioFsFile == NULL) {
+    VirtioFsReleaseLock (CurrentTpl);
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -456,7 +462,9 @@ VirtioFsSimpleFileOpen (
   if (AsciiStrCmp (NewCanonicalPath, "/") == 0) {
     FreePool (NewCanonicalPath);
     FreePool (NewVirtioFsFile);
-    return OpenRootDirectory (VirtioFs, NewHandle, OpenForWriting);
+    Status = OpenRootDirectory (VirtioFs, NewHandle, OpenForWriting);
+    VirtioFsReleaseLock (CurrentTpl);
+    return Status;
   }
 
   //
@@ -564,6 +572,7 @@ VirtioFsSimpleFileOpen (
   InsertTailList (&VirtioFs->OpenFiles, &NewVirtioFsFile->OpenFilesEntry);
 
   *NewHandle = &NewVirtioFsFile->SimpleFile;
+  VirtioFsReleaseLock (CurrentTpl);
   return EFI_SUCCESS;
 
 FreeNewCanonicalPath:
@@ -572,5 +581,6 @@ FreeNewCanonicalPath:
 FreeNewVirtioFsFile:
   FreePool (NewVirtioFsFile);
 
+  VirtioFsReleaseLock (CurrentTpl);
   return Status;
 }

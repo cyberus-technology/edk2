@@ -30,11 +30,14 @@ VirtioFsOpenVolume (
   EFI_STATUS      Status;
   CHAR8           *CanonicalPathname;
   UINT64          RootDirHandle;
+  EFI_TPL         CurrentTpl;
 
   VirtioFs = VIRTIO_FS_FROM_SIMPLE_FS (This);
+  CurrentTpl = VirtioFsAcquireLock ();
 
   VirtioFsFile = AllocatePool (sizeof *VirtioFsFile);
   if (VirtioFsFile == NULL) {
+    VirtioFsReleaseLock (CurrentTpl);
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -89,6 +92,7 @@ VirtioFsOpenVolume (
   InsertTailList (&VirtioFs->OpenFiles, &VirtioFsFile->OpenFilesEntry);
 
   *Root = &VirtioFsFile->SimpleFile;
+  VirtioFsReleaseLock (CurrentTpl);
   return EFI_SUCCESS;
 
 FreeCanonicalPathname:
@@ -97,5 +101,6 @@ FreeCanonicalPathname:
 FreeVirtioFsFile:
   FreePool (VirtioFsFile);
 
+  VirtioFsReleaseLock (CurrentTpl);
   return Status;
 }

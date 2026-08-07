@@ -14,6 +14,7 @@
 #include <Guid/FileInfo.h>             // EFI_FILE_INFO
 #include <IndustryStandard/VirtioFs.h> // VIRTIO_FS_TAG_BYTES
 #include <Library/DebugLib.h>          // CR()
+#include <Library/UefiBootServicesTableLib.h> // gBS
 #include <Protocol/SimpleFileSystem.h> // EFI_SIMPLE_FILE_SYSTEM_PROTOCOL
 #include <Protocol/VirtioDevice.h>     // VIRTIO_DEVICE_PROTOCOL
 #include <Uefi/UefiBaseType.h>         // EFI_EVENT
@@ -182,6 +183,26 @@ typedef struct {
 #define VIRTIO_FS_FILE_FROM_OPEN_FILES_ENTRY(OpenFilesEntryReference) \
   CR (OpenFilesEntryReference, VIRTIO_FS_FILE, OpenFilesEntry, \
     VIRTIO_FS_FILE_SIG);
+
+STATIC
+inline
+EFI_TPL
+VirtioFsAcquireLock (
+  VOID
+  )
+{
+  return gBS->RaiseTPL (TPL_NOTIFY);
+}
+
+STATIC
+inline
+VOID
+VirtioFsReleaseLock (
+  IN EFI_TPL  PreviousTpl
+  )
+{
+  gBS->RestoreTPL (PreviousTpl);
+}
 
 //
 // Initialization and helper routines for the Virtio Filesystem device.

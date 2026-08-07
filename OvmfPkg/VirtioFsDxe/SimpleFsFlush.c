@@ -17,11 +17,14 @@ VirtioFsSimpleFileFlush (
   VIRTIO_FS_FILE  *VirtioFsFile;
   VIRTIO_FS       *VirtioFs;
   EFI_STATUS      Status;
+  EFI_TPL         CurrentTpl;
 
   VirtioFsFile = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (This);
   VirtioFs     = VirtioFsFile->OwnerFs;
+  CurrentTpl   = VirtioFsAcquireLock ();
 
   if (!VirtioFsFile->IsOpenForWriting) {
+    VirtioFsReleaseLock (CurrentTpl);
     return EFI_ACCESS_DENIED;
   }
 
@@ -35,6 +38,7 @@ VirtioFsSimpleFileFlush (
                VirtioFsFile->FuseHandle
                );
     if (EFI_ERROR (Status)) {
+      VirtioFsReleaseLock (CurrentTpl);
       return Status;
     }
   }
@@ -45,5 +49,6 @@ VirtioFsSimpleFileFlush (
              VirtioFsFile->FuseHandle,
              VirtioFsFile->IsDirectory
              );
+  VirtioFsReleaseLock (CurrentTpl);
   return Status;
 }

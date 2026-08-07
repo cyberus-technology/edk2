@@ -19,9 +19,11 @@ VirtioFsSimpleFileClose (
 {
   VIRTIO_FS_FILE  *VirtioFsFile;
   VIRTIO_FS       *VirtioFs;
+  EFI_TPL         CurrentTpl;
 
   VirtioFsFile = VIRTIO_FS_FILE_FROM_SIMPLE_FILE (This);
   VirtioFs     = VirtioFsFile->OwnerFs;
+  CurrentTpl   = VirtioFsAcquireLock ();
 
   //
   // All actions in this function are "best effort"; the UEFI spec requires
@@ -76,5 +78,6 @@ VirtioFsSimpleFileClose (
   }
 
   FreePool (VirtioFsFile);
+  VirtioFsReleaseLock (CurrentTpl);
   return EFI_SUCCESS;
 }

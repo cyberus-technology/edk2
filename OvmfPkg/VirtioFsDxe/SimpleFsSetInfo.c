@@ -625,17 +625,20 @@ VirtioFsSimpleFileSetInfo (
   IN VOID               *Buffer
   )
 {
+  EFI_TPL     CurrentTpl;
+  EFI_STATUS  Status;
+
+  CurrentTpl = VirtioFsAcquireLock ();
   if (CompareGuid (InformationType, &gEfiFileInfoGuid)) {
-    return SetFileInfo (This, BufferSize, Buffer);
+    Status = SetFileInfo (This, BufferSize, Buffer);
+  } else if (CompareGuid (InformationType, &gEfiFileSystemInfoGuid)) {
+    Status = SetFileSystemInfo (This, BufferSize, Buffer);
+  } else if (CompareGuid (InformationType, &gEfiFileSystemVolumeLabelInfoIdGuid)) {
+    Status = SetFileSystemVolumeLabelInfo (This, BufferSize, Buffer);
+  } else {
+    Status = EFI_UNSUPPORTED;
   }
 
-  if (CompareGuid (InformationType, &gEfiFileSystemInfoGuid)) {
-    return SetFileSystemInfo (This, BufferSize, Buffer);
-  }
-
-  if (CompareGuid (InformationType, &gEfiFileSystemVolumeLabelInfoIdGuid)) {
-    return SetFileSystemVolumeLabelInfo (This, BufferSize, Buffer);
-  }
-
-  return EFI_UNSUPPORTED;
+  VirtioFsReleaseLock (CurrentTpl);
+  return Status;
 }
