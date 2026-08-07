@@ -446,6 +446,7 @@ VirtioScsiPassThru (
   VOID                       *InDataBuffer;
   UINTN                      InDataNumPages;
   BOOLEAN                    OutDataBufferIsMapped;
+  EFI_TPL                    CurrentTpl;
 
   //
   // Set InDataMapping,OutDataMapping,InDataDeviceAddress and OutDataDeviceAddress to
@@ -596,6 +597,8 @@ VirtioScsiPassThru (
     goto FreeResponseBuffer;
   }
 
+  CurrentTpl = gBS->RaiseTPL (TPL_NOTIFY);
+
   VirtioPrepare (&Dev->Ring, &Indices);
 
   //
@@ -664,10 +667,12 @@ VirtioScsiPassThru (
         NULL
         ) != EFI_SUCCESS)
   {
+    gBS->RestoreTPL (CurrentTpl);
     Status = ReportHostAdapterError (Packet);
     goto UnmapResponseBuffer;
   }
 
+  gBS->RestoreTPL (CurrentTpl);
   Status = ParseResponse (Packet, Response);
 
   //
